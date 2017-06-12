@@ -25,7 +25,7 @@ SECRET_KEY = '367!dsv4p@5v&l4u!czccl!5bp7t^8c&#&^3c=#q_5@)$v2f7='
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '.williamblog.date']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '.williamblogdrive.com']
 
 
 # Application definition
