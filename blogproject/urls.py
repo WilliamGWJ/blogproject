@@ -20,6 +20,6 @@ from blog.feeds import AllPostsRssFeed
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'', include('blog.urls')),
-    url(r'^comment', include('comments.urls')),
+    url(r'^comment/', include('comments.urls')),
     url(r'^all/rss/$', AllPostsRssFeed(), name='rss')
 ]

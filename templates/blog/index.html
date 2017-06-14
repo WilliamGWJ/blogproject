@@ -2,141 +2,95 @@
 
 {% block main %}
     {% for post in post_list %}
-    <article class="post pos-{{ post.pk }}">
-        <header class="entry-header">
-            <h1 class="entry-title">
-                <a href="{{ post.get_absolute_url }}">{{ post.title }}</a>
-            </h1>
-            <div class="entry-meta">
-                <span class="post-category">
-                    <a href="{% url 'blog:category' post.category.pk %}">{{ post.category.name }}</a>
-                </span>
-                <span class="post-date"><a href="{% url 'blog:archives' post.create_time.year post.create_time.month %}">
-                    <time class="entry-date" datetime="{{ post.create_time }}">{{ post.create_time }}</time></a>
-                </span>
-                <span class="post-author">
-                    <a href="#">{{ post.author }}</a>
-                </span>
-                <span class="comments-link">
-                    <a href="{{ post.get_absolute_url }}">评论{{ post.comment_set.count }}</a>
-                </span>
-                <span class="views-count">
-                    <a href="{{ post.get_absolute_url }}">阅读{{ post.views }}</a>
-                </span>
+        <article class="post post-{{ post.pk }}">
+            <header class="entry-header">
+                <h1 class="entry-title">
+                    <a href="{{ post.get_absolute_url }}">{{ post.title }}</a>
+                </h1>
+                <div class="entry-meta">
+                    <span class="post-category">
+                        <a href="{% url 'blog:category' post.category.pk %}">{{ post.category.name }}</a></span>
+                    <span class="post-date"><a href="#"><time class="entry-date"
+                                                              datetime="{{ post.create_time }}">{{ post.create_time }}</time></a></span>
+                    <span class="post-author"><a href="#">{{ post.author }}</a></span>
+                    <span class="comments-link">
+                        <a href="{{ post.get_absolute_url }}#comment-area">{{ post.comment_set.count }} 评论</a></span>
+                    <span class="views-count"><a href="{{ post.get_absolute_url }}">{{ post.views }} 阅读</a></span>
+                </div>
+            </header>
+            <div class="entry-content clearfix">
+                <p>{{ post.excerpt }}...</p>
+                <div class="read-more cl-effect-14">
+                    <a href="{{ post.get_absolute_url }}" class="more-link">继续阅读 <span class="meta-nav">→</span></a>
+                </div>
             </div>
-        </header>
-        <div class="entry-content clearfix">
-            <p>{{ post.excerpt }}...</p>
-            <div class="read-more cl-effect-14">
-                <a href="{{ post.get_absolute_url }}" class="more-link">继续阅读 <span class="meta-nav">→</span></a>
-            </div>
-        </div>
-    </article>
+        </article>
     {% empty %}
-    <div class="no-post">暂时没有文章发布</div>
+        <div class="no-post">暂时还没有发布的文章！</div>
     {% endfor %}
 
-    <!-- 简单分页效果
+    {% comment %}
+    简单分页导航：
     {% if is_paginated %}
-    <div class="pagination-simple">
-        {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}">上一页</a>
-        {% endif %}
-        <span class="current">第 {{ page_obj.number }} 页 / 共 {{ paginator.num_pages }} 页</span>
-        {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}">下一页</a>
-        {% endif %}
-    </div>
+        <div class="pagination-simple">
+            <!-- 如果当前页还有上一页，显示一个上一页的按钮 -->
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}">上一页</a>
+            {% endif %}
+            <!-- 显示当前页面信息 -->
+            <span class="current">第 {{ page_obj.number }} 页 / 共 {{ paginator.num_pages }} 页</span>
+            <!-- 如果当前页还有下一页，显示一个下一页的按钮 -->
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">下一页</a>
+            {% endif %}
+        </div>
     {% endif %}
-    -->
-    <!-- 完整的分页效果 -->
-    <a href="?page=1">首页</a>
+    {% endcomment %}
+
+    {% comment %}
+    完善的分页导航
+    {% endcomment %}
     {% if not is_paginated %}
-        <a href="?page=1">1</a>
+        <a href="?page=1">首页</a>
+        <a href="?page=1" style="color: red">1</a>
         <a href="?page=1">尾页</a>
     {% endif %}
     {% if is_paginated %}
         <div class="pagination">
-            {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}">上一页</a>
-            {% endif %}
-            {% if first %}
-                <a href="?page=1">1</a>
-            {% endif %}
-            {% if left %}
-                {% if left_has_more %}
-                    <span>...</span>
+            <ul>
+                <a href="?page=1">首页</a>
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}">上一页</a>
                 {% endif %}
-                {% for i in left %}
-                    <a href="?page={{ i }}">{{ i }}</a>
-                {% endfor %}
-            {% endif %}
-            <a href="?page={{ page_obj.number }}" style="color:red">{{ page_obj.number }}</a>
-            {% if right %}
-                {% for i in right %}
-                    <a href="?page={{ i }}">{{ i }}</a>
-                {% endfor %}
-                {% if right_has_more %}
-                    <span>...</span>
+                {% if first %}
+                    <li><a href="?page=1">1</a></li>
                 {% endif %}
-            {% endif %}
-            {% if last %}
-                <a href="?page={{ paginator.num_pages }}">{{ paginator.num_pages }}</a>
-            {% endif %}
-            {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}">下一页</a>
+                {% if left %}
+                    {% if left_has_more %}
+                        <li><span>...</span></li>
+                    {% endif %}
+                    {% for i in left %}
+                        <li><a href="?page={{ i }}">{{ i }}</a></li>
+                    {% endfor %}
+                {% endif %}
+                <li class="current"><a href="?page={{ page_obj.number }}" style="color: red">{{ page_obj.number }}</a></li>
+                {% if right %}
+                    {% for i in right %}
+                        <li><a href="?page={{ i }}">{{ i }}</a></li>
+                    {% endfor %}
+                    {% if right_has_more %}
+                        <li><span>...</span></li>
+                    {% endif %}
+                {% endif %}
+                {% if last %}
+                    <li><a href="?page={{ paginator.num_pages }}">{{ paginator.num_pages }}</a></li>
+                {% endif %}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}">下一页</a>
+                {% endif %}
                 <a href="?page={{ paginator.num_pages }}">尾页</a>
-            {% endif %}
+            </ul>
         </div>
+
     {% endif %}
-
 {% endblock main %}
-{% load blog_tags %}
-
-{% block toc %}
-    <div class="widget widget-archives">
-                    <h3 class="widget-title">归档</h3>
-                    {% archives as date_list %}
-                    <ul>
-                        {% for date in date_list %}
-                        <li>
-                            <a href="{% url 'blog:archives' date.year date.month %}">{{ date.year }} 年 {{ date.month }} 月</a>
-                        </li>
-                        {% empty %}
-                        <li>暂无归档</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-
-                <div class="widget widget-category">
-                    <h3 class="widget-title">分类</h3>
-                    {% get_category as category_list %}
-                    <ul>
-                        {% for cate in category_list %}
-                        <li>
-                            <a href="{% url 'blog:category' cate.pk %}">{{ cate.name }}
-                                <span class="post-count">({{ cate.num_posts }})</span>
-                            </a>
-                        </li>
-                        {% empty %}
-                        <li>暂无分类</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-
-                <div class="widget widget-tag-cloud">
-                    <h3 class="widget-title">标签云</h3>
-                    {% get_tags as tag_list %}
-                    <ul>
-                        {% for tag in tag_list %}
-                        <li>
-                            <a href="{% url 'blog:tag' tag.pk %}">{{ tag.name }}
-                                <span class="post-count">({{ tag.num_posts }})</span>
-                            </a>
-                        </li>
-                        {% empty %}
-                        暂无标签！
-                        {% endfor %}
-                    </ul>
-                </div>
-{% endblock toc %}

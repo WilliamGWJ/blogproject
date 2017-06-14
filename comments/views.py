@@ -5,7 +5,7 @@ from .forms import CommentForm
 
 
 # 评论视图函数
-def post_comment(request,post_pk):
+def post_comment(request, post_pk):
     post = get_object_or_404(Post, pk=post_pk)
     if request.method == 'POST':
         form = CommentForm(request.POST)

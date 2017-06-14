@@ -1,9 +1,11 @@
 import markdown
+from markdown.extensions.toc import TocExtension
 import functools
 from django.shortcuts import render, get_object_or_404
 from comments.forms import CommentForm
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.views.generic import ListView, DetailView
+from django.utils.text import slugify
 from .models import Post, Category, Tag
 
 
@@ -153,12 +155,13 @@ class PostDetailView(DetailView):
     # 覆写 get_object 方法的目的是因为需要对 post 的 body 值进行渲染
     def get_object(self, queryset=None):
         post = super(PostDetailView, self).get_object(queryset=None)
-        post.body = markdown.markdown(post.body,
-                                      extensions=[
-                                          'markdown.extensions.extra',
-                                          'markdown.extensions.codehilite',
-                                          'markdown.extensions.toc',
-                                      ])
+        md = markdown.Markdown(extensions=[
+            'markdown.extensions.extra',
+            'markdown.extensions.codehilite',
+            TocExtension(slugify=slugify),
+        ])
+        post.body = md.convert(post.body)
+        post.toc = md.toc
         return post
 
     # 覆写 get_context_data 的目的是因为除了将 post 传递给模板外还要把评论表单、post 下的评论列表传递给模板。
