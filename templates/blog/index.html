@@ -26,7 +26,7 @@
             </div>
         </header>
         <div class="entry-content clearfix">
-            <p>{{ post.excerpt }}</p>
+            <p>{{ post.excerpt }}...</p>
             <div class="read-more cl-effect-14">
                 <a href="{{ post.get_absolute_url }}" class="more-link">继续阅读 <span class="meta-nav">→</span></a>
             </div>
@@ -49,8 +49,17 @@
     </div>
     {% endif %}
     -->
+    <!-- 完整的分页效果 -->
+    <a href="?page=1">首页</a>
+    {% if not is_paginated %}
+        <a href="?page=1">1</a>
+        <a href="?page=1">尾页</a>
+    {% endif %}
     {% if is_paginated %}
         <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}">上一页</a>
+            {% endif %}
             {% if first %}
                 <a href="?page=1">1</a>
             {% endif %}
@@ -59,22 +68,75 @@
                     <span>...</span>
                 {% endif %}
                 {% for i in left %}
-                    <a href="?page{{ i }}">{{ i }}</a>
+                    <a href="?page={{ i }}">{{ i }}</a>
                 {% endfor %}
             {% endif %}
             <a href="?page={{ page_obj.number }}" style="color:red">{{ page_obj.number }}</a>
             {% if right %}
                 {% for i in right %}
-                    <a herf="?page={{ i }}">{{ i }}</a>
+                    <a href="?page={{ i }}">{{ i }}</a>
                 {% endfor %}
                 {% if right_has_more %}
                     <span>...</span>
                 {% endif %}
             {% endif %}
             {% if last %}
-                <a herf="?page={{ paginator.num_pages }}">{{ paginator.num_pages }}</a>
+                <a href="?page={{ paginator.num_pages }}">{{ paginator.num_pages }}</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">下一页</a>
+                <a href="?page={{ paginator.num_pages }}">尾页</a>
             {% endif %}
         </div>
     {% endif %}
 
 {% endblock main %}
+{% load blog_tags %}
+
+{% block toc %}
+    <div class="widget widget-archives">
+                    <h3 class="widget-title">归档</h3>
+                    {% archives as date_list %}
+                    <ul>
+                        {% for date in date_list %}
+                        <li>
+                            <a href="{% url 'blog:archives' date.year date.month %}">{{ date.year }} 年 {{ date.month }} 月</a>
+                        </li>
+                        {% empty %}
+                        <li>暂无归档</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="widget widget-category">
+                    <h3 class="widget-title">分类</h3>
+                    {% get_category as category_list %}
+                    <ul>
+                        {% for cate in category_list %}
+                        <li>
+                            <a href="{% url 'blog:category' cate.pk %}">{{ cate.name }}
+                                <span class="post-count">({{ cate.num_posts }})</span>
+                            </a>
+                        </li>
+                        {% empty %}
+                        <li>暂无分类</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="widget widget-tag-cloud">
+                    <h3 class="widget-title">标签云</h3>
+                    {% get_tags as tag_list %}
+                    <ul>
+                        {% for tag in tag_list %}
+                        <li>
+                            <a href="{% url 'blog:tag' tag.pk %}">{{ tag.name }}
+                                <span class="post-count">({{ tag.num_posts }})</span>
+                            </a>
+                        </li>
+                        {% empty %}
+                        暂无标签！
+                        {% endfor %}
+                    </ul>
+                </div>
+{% endblock toc %}

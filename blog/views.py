@@ -1,9 +1,10 @@
 import markdown
+import functools
 from django.shortcuts import render, get_object_or_404
 from comments.forms import CommentForm
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.views.generic import ListView
-from .models import *
+from django.views.generic import ListView, DetailView
+from .models import Post, Category, Tag
 
 
 # 主页视图函数，加入分页功能
@@ -12,7 +13,7 @@ class IndexView(ListView):
     template_name = 'blog/index.html'
     context_object_name = 'post_list'
     # 打开分页选项
-    paginate_by = 5
+    paginate_by = 3
 
     # 复写get_context_data方法，加入自定义的模板变量
     def get_context_data(self, **kwargs):
@@ -21,11 +22,11 @@ class IndexView(ListView):
 
         # 从模板字典中取出对应变量
         paginator = context.get('paginator')
-        page = context.get('page_boj')
+        page_obj = context.get('page_obj')
         is_paginated = context.get('is_paginated')
 
         # 调用自定义的pagination_data方法获得显示分页导航条需要的数据
-        pagination_data = self.pagination_data(paginator, page, is_paginated)
+        pagination_data = self.pagination_data(paginator, page_obj, is_paginated)
 
         # 将分页导航条的模板变量更新到context中
         context.update(pagination_data)
@@ -34,7 +35,7 @@ class IndexView(ListView):
         return context
 
     # 自定义的方法，用于显示分页导航条需要的数据
-    def pagination_data(self, paginator, page, is_paginated):
+    def pagination_data(self, paginator, page_obj, is_paginated):
         # 如果没有分页，则无需显示导航条
         if not is_paginated:
             return {}
@@ -52,7 +53,7 @@ class IndexView(ListView):
         # 标示最后一页页码前是否需要显示省略号
         right_has_more = False
         # 获得用户当前请求的页码数
-        page_number = page.number
+        page_number = page_obj.number
         # 获得分页总页数
         total_pages = paginator.num_pages
         # 获得整个分页列表
@@ -106,28 +107,73 @@ class IndexView(ListView):
         }
         return data
 
-"""
-# 弃用index()，改为上述基于类的通用视图函数
-# def index(request):
-#     object_list = Post.objects.all()
-#     paginator = Paginator(object_list, 5)
-#
-#     page = request.GET.get('page')
-#     try:
-#         page_obj = paginator.page(page)
-#     except PageNotAnInteger:
-#         page_obj = paginator.page(1)
-#     except EmptyPage:
-#         page_obj = paginator.page(paginator.num_pages)
-#
-#     post_list = page_obj.object_list
-#
-#     context = {'post_list': post_list, 'paginator': paginator, 'page_obj': page_obj}
-#     return render(request, 'blog/index.html', context=context)
-"""
+
+# 分类页面(继承自主页面的通用视图函数)
+class CategoryView(IndexView):
+    # 复写get_queryset方法，该方法默认获取指定模型的全部列表数据
+    def get_queryset(self):
+        cate = get_object_or_404(Category, pk=self.kwargs.get('pk'))
+        return super(CategoryView, self).get_queryset().filter(category=cate)
 
 
-# 文章详情页视图函数
+# 标签页面（继承继承自主页面的通用视图函数）
+class TagView(IndexView):
+    # 复写get_queryset方法，该方法默认获取指定模型的全部列表数据
+    def get_queryset(self):
+        tag = get_object_or_404(Tag, pk=self.kwargs.get('pk'))
+        return super(TagView, self).get_queryset().filter(tag=tag)
+
+
+# 分类页面（继承继承自主页面的通用视图函数）
+class ArchiveView(IndexView):
+    def get_queryset(self):
+        year = self.kwargs.get('year')
+        month = self.kwargs.get('month')
+        return super(ArchiveView, self).get_queryset().filter(create_time__year=year,
+                                                              create_time__month=month
+                                                              )
+
+
+# 文章详情页面（继承自DetailView）
+class PostDetailView(DetailView):
+    model = Post
+    template_name = 'blog/detail.html'
+    context_object_name = 'post'
+
+    # 覆写get方法，目的是因为每当文章被访问一次，就得将文章阅读量+1
+    def get(self, request, *args, **kwargs):
+        response = super(PostDetailView, self).get(request, *args, **kwargs)
+
+        # 文章阅读量+1
+        self.object.increase_views()
+
+        # 视图函数返回一个HttpResponse对象
+        return response
+
+    # 覆写 get_object 方法的目的是因为需要对 post 的 body 值进行渲染
+    def get_object(self, queryset=None):
+        post = super(PostDetailView, self).get_object(queryset=None)
+        post.body = markdown.markdown(post.body,
+                                      extensions=[
+                                          'markdown.extensions.extra',
+                                          'markdown.extensions.codehilite',
+                                          'markdown.extensions.toc',
+                                      ])
+        return post
+
+    # 覆写 get_context_data 的目的是因为除了将 post 传递给模板外还要把评论表单、post 下的评论列表传递给模板。
+    def get_context_data(self, **kwargs):
+        context = super(PostDetailView, self).get_context_data(**kwargs)
+        form = CommentForm()
+        comment_list = self.object.comment_set.all()
+        context.update({
+            'form': form,
+            'comment_list': comment_list
+        })
+        return context
+
+
+# 文章详情页视图函数（弃用）
 def detail(request, pk):
     post = get_object_or_404(Post, pk=pk)
     post.increase_views()
@@ -148,36 +194,72 @@ def detail(request, pk):
     return render(request, 'blog/detail.html', context=context)
 
 
-# 归档页面视图函数
-def archives(request, year, month):
-    post_list = Post.objects.filter(
-        create_time__year=year,
-        create_time__month=month
-    )
-    return render(request, 'blog/index.html', context={'post_list': post_list})
+# 主页视图函数（弃用）
+"""
+# def index(request):
+#     object_list = Post.objects.all()
+#     paginator = Paginator(object_list, 5)
+#
+#     page = request.GET.get('page')
+#     try:
+#         page_obj = paginator.page(page)
+#     except PageNotAnInteger:
+#         page_obj = paginator.page(1)
+#     except EmptyPage:
+#         page_obj = paginator.page(paginator.num_pages)
+#
+#     post_list = page_obj.object_list
+#
+#     context = {'post_list': post_list, 'paginator': paginator, 'page_obj': page_obj}
+#     %s
+"""
 
 
-# 分类页面视图函数
+# 分类页面视图函数(弃用)
+"""
 def category(request, pk):
     cate = get_object_or_404(Category, pk=pk)
     post_list = Post.objects.filter(category=cate)
     return render(request, 'blog/index.html', context={'post_list': post_list})
+"""
 
 
-# 标签视图函数
+# 标签视图函数（弃用）
+"""
 def tag(request, pk):
     tag = get_object_or_404(Tag, pk=pk)
     post_list = Post.objects.filter(tag=tag)
     return render(request, 'blog/index.html', context={'post_list': post_list})
-
 """
-# 标签视图函数
-class TagView(ListView):
-    model =Post
-    template_name = 'blog/index.html'
-    context_object_name = 'post_list'
 
-    def get_queryset(self):
-        tag = get_object_or_404(Tag, pk=self.kwargs.get('pk'))
-        return super(TagView, self).get_queryset().filter(tags=tag)
+
+# 分类页面视图函数（弃用）
+"""
+def archives(request, year, month):
+
+    post_list = Post.objects.filter(created_time__year=year, 
+                                    created_time__month=month
+                                    )
+
+    return render(request, 'blog/index.html', context={'post_list': post_list})
+"""
+
+
+# 自定义分页装饰器（弃用）
+"""
+def auto_paginator(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        is_paginated = True
+        object_list = func.post_list
+        paginator = Paginator(object_list, 3)
+        page = func.request.GET.get('page')
+        page_obj = paginator.page(page)
+        post_list = page_obj.object_list
+        context = {'post_list': post_list}
+        pagination_data = IndexView.pagination_data(paginator, page_obj, is_paginated)
+        context.update(pagination_data)
+        func.context = context
+        return func(*args, **kwargs)
+    return wrapper
 """

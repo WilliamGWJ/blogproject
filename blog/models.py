@@ -38,7 +38,7 @@ class Post(models.Model):
         self.views += 1
         self.save(update_fields=['views'])
 
-    # 如果摘要为空，则使用文章的前50个字符作为摘要
+    # 如果摘要为空，则使用文章的前100个字符作为摘要
     def save(self, *args, **kwargs):
         if not self.excerpt:
             md = markdown.Markdown(
@@ -46,7 +46,7 @@ class Post(models.Model):
                     'markdown.extensions.extra',
                     'markdown.extensions.codehilite',
                 ])
-            self.excerpt = strip_tags(md.convert(self.body))[:50]
+            self.excerpt = strip_tags(md.convert(self.body))[:100]
         super(Post, self).save(*args, **kwargs)
 
     # 定义文章列表默认排列顺序，按时间倒序排列
